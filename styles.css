@@ -1,0 +1,44 @@
+body {
+  background-image: url("brmmoney_graffiti_bg.jpg");
+  background-size: cover;
+  background-position: center top;
+  background-attachment: fixed;
+}
+
+body,
+body p,
+body li,
+body h1,
+body h2,
+body h3,
+body h4,
+body span,
+body label,
+body strong {
+  color: #fff !important;
+}
+
+.youtube-cta {
+  display: inline-block;
+  background: #ff1493;
+  color: #fff !important;
+  border: 2px solid #fff;
+  font-weight: bold;
+  font-size: 15px;
+  padding: 16px 24px;
+  text-decoration: none;
+  border-radius: 8px;
+  box-shadow:
+    0 0 8px #ff1493,
+    0 0 18px #ff1493,
+    0 0 30px rgba(255, 20, 147, 0.7);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.youtube-cta:hover {
+  transform: scale(1.06);
+  box-shadow:
+    0 0 12px #ff1493,
+    0 0 24px #ff1493,
+    0 0 40px rgba(255, 20, 147, 0.85);
+}
