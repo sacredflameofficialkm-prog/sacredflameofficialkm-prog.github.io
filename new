@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MY WORLD — One Million Bot Nation</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <header class="hero">
+    <div class="badge">1,000,000 BOT RECORDS LOADED</div>
+
+    <h1>MY WORLD</h1>
+
+    <p class="subtitle">
+      ONE MILLION INDIVIDUAL BOTS
+    </p>
+
+    <p class="description">
+      THE WHOLE COUNTRY CELEBRATES
+    </p>
+
+    <button id="startButton" class="start-button">
+      START THE CELEBRATION
+    </button>
+
+    <div class="music-links">
+      <a
+        href="https://www.youtube.com/watch?v=qhhP1UwRITQ&list=OLAK5uy_nVdGj_5_LBn5iavI8_Y4rG4_QBSlSM7M4"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        ▶ YouTube
+      </a>
+
+      <a
+        href="https://open.spotify.com/playlist/2KZ7CirXmrKuqCluEIAKp4?si=SZRWNs7QSnmaHeG5jeHEpg&utm_source=copy-link&pi=W-bvcTiYShSR3"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        ♫ Spotify
+      </a>
+
+      <a
+        href="https://tidal.com/playlist/1b0385fe-ca05-4664-82fc-c41106e84f11"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        ♪ Tidal
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <section class="stats">
+      <div class="stat-card">
+        <strong id="botCount">0</strong>
+        <span>BOTS CELEBRATING</span>
+      </div>
+
+      <div class="stat-card">
+        <strong id="stateCount">50</strong>
+        <span>U.S. STATES</span>
+      </div>
+
+      <div class="stat-card">
+        <strong>1,000,000</strong>
+        <span>TOTAL BOT RECORDS</span>
+      </div>
+    </section>
+
+    <section class="celebration">
+      <div id="botField" class="bot-field"></div>
+    </section>
+
+    <section class="state-panel">
+      <h2>THE NATION IS CELEBRATING</h2>
+      <p id="stateLabel">Waiting for the celebration to start...</p>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
