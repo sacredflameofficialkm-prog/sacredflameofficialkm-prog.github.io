@@ -1,6 +1,6 @@
 /* =========================================================
    BRMMONEY — REAL BRM FAN NETWORK
-   Supabase + ONE BAND ONE SOUND
+   ONE BAND ONE SOUND
    ========================================================= */
 
 const SUPABASE_URL = "https://ekkfgzisheokzrdaypef.supabase.co";
@@ -8,79 +8,30 @@ const SUPABASE_URL = "https://ekkfgzisheokzrdaypef.supabase.co";
 const SUPABASE_KEY =
   "sb_publishable_QmjZOgMtIH9G9dpx-Setsw_zC6TORvI";
 
-const TOTAL_FAN_GOAL = 1000000;
-const VISIBLE_FANS = 850;
 const FAN_TIMEOUT_SECONDS = 45;
+const VISIBLE_FANS = 850;
 
-/* Load Supabase */
-const supabaseScript = document.createElement("script");
-supabaseScript.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
-document.head.appendChild(supabaseScript);
-
-let supabase = null;
-let fanSessionId = null;
-let heartbeatTimer = null;
-let fanCountTimer = null;
-let running = false;
+/* =========================================================
+   PAGE ELEMENTS
+   ========================================================= */
 
 const botField = document.getElementById("botField");
 const botCounter = document.getElementById("botCounter");
 const stateName = document.getElementById("stateName");
 const stateMessage = document.getElementById("stateMessage");
-const startCelebration = document.getElementById("startCelebration");
+const playlistFrame = document.getElementById("brmPlaylist");
 
-const states = [
-  "Alabama",
-  "Alaska",
-  "Arizona",
-  "Arkansas",
-  "California",
-  "Colorado",
-  "Connecticut",
-  "Delaware",
-  "Florida",
-  "Georgia",
-  "Hawaii",
-  "Idaho",
-  "Illinois",
-  "Indiana",
-  "Iowa",
-  "Kansas",
-  "Kentucky",
-  "Louisiana",
-  "Maine",
-  "Maryland",
-  "Massachusetts",
-  "Michigan",
-  "Minnesota",
-  "Mississippi",
-  "Missouri",
-  "Montana",
-  "Nebraska",
-  "Nevada",
-  "New Hampshire",
-  "New Jersey",
-  "New Mexico",
-  "New York",
-  "North Carolina",
-  "North Dakota",
-  "Ohio",
-  "Oklahoma",
-  "Oregon",
-  "Pennsylvania",
-  "Rhode Island",
-  "South Carolina",
-  "South Dakota",
-  "Tennessee",
-  "Texas",
-  "Utah",
-  "Vermont",
-  "Virginia",
-  "Washington",
-  "West Virginia",
-  "Wisconsin",
-  "Wyoming"
-];
+/* =========================================================
+   STATE
+   ========================================================= */
+
+let supabase = null;
+let fanSessionId = null;
+let heartbeatTimer = null;
+let fanCountTimer = null;
+let visualTimer = null;
+let youtubePlayer = null;
+let fanIsListening = false;
 
 /* =========================================================
    VISUAL FAN FIELD
@@ -125,22 +76,32 @@ function animateFans() {
 }
 
 /* =========================================================
-   REAL FAN SESSION
+   SESSION ID
    ========================================================= */
 
 function createSessionId() {
-  if (window.crypto && crypto.randomUUID) {
-    return crypto.randomUUID();
+  if (
+    window.crypto &&
+    typeof window.crypto.randomUUID === "function"
+  ) {
+    return window.crypto.randomUUID();
   }
 
-  return "fan-" +
+  return (
+    "fan-" +
     Date.now() +
     "-" +
-    Math.random().toString(36).slice(2);
+    Math.random().toString(36).slice(2)
+  );
 }
 
+/* =========================================================
+   START REAL FAN SESSION
+   ========================================================= */
+
 async function startFanSession() {
-  if (!supabase || fanSessionId) return;
+  if (!supabase) return;
+  if (fanSessionId) return;
 
   fanSessionId = createSessionId();
 
@@ -148,20 +109,36 @@ async function startFanSession() {
     .from("brm_fan_sessions")
     .insert({
       session_id: fanSessionId,
-      is_listening: true
+      is_listening: true,
+      last_seen_at: new Date().toISOString()
     });
 
   if (error) {
-    console.error("BRM FAN session error:", error);
+    console.error(
+      "BRM FAN session error:",
+      error
+    );
+
     fanSessionId = null;
+    fanIsListening = false;
     return;
   }
 
-  console.log("BRM FAN session started.");
+  fanIsListening = true;
+
+  console.log(
+    "REAL BRM FAN session started."
+  );
 }
 
+/* =========================================================
+   MARK SESSION ACTIVE
+   ========================================================= */
+
 async function heartbeat() {
-  if (!supabase || !fanSessionId) return;
+  if (!supabase) return;
+  if (!fanSessionId) return;
+  if (!fanIsListening) return;
 
   const { error } = await supabase
     .from("brm_fan_sessions")
@@ -169,10 +146,45 @@ async function heartbeat() {
       is_listening: true,
       last_seen_at: new Date().toISOString()
     })
-    .eq("session_id", fanSessionId);
+    .eq(
+      "session_id",
+      fanSessionId
+    );
 
   if (error) {
-    console.error("BRM FAN heartbeat error:", error);
+    console.error(
+      "BRM FAN heartbeat error:",
+      error
+    );
+  }
+}
+
+/* =========================================================
+   PAUSE SESSION
+   ========================================================= */
+
+async function pauseFanSession() {
+  if (!supabase) return;
+  if (!fanSessionId) return;
+
+  fanIsListening = false;
+
+  const { error } = await supabase
+    .from("brm_fan_sessions")
+    .update({
+      is_listening: false,
+      last_seen_at: new Date().toISOString()
+    })
+    .eq(
+      "session_id",
+      fanSessionId
+    );
+
+  if (error) {
+    console.error(
+      "BRM FAN pause error:",
+      error
+    );
   }
 }
 
@@ -181,7 +193,8 @@ async function heartbeat() {
    ========================================================= */
 
 async function updateRealFanCount() {
-  if (!supabase || !botCounter) return;
+  if (!supabase) return;
+  if (!botCounter) return;
 
   const cutoff = new Date(
     Date.now() -
@@ -194,11 +207,21 @@ async function updateRealFanCount() {
       count: "exact",
       head: true
     })
-    .eq("is_listening", true)
-    .gte("last_seen_at", cutoff);
+    .eq(
+      "is_listening",
+      true
+    )
+    .gte(
+      "last_seen_at",
+      cutoff
+    );
 
   if (error) {
-    console.error("BRM FAN count error:", error);
+    console.error(
+      "BRM FAN count error:",
+      error
+    );
+
     return;
   }
 
@@ -219,78 +242,256 @@ async function updateRealFanCount() {
 }
 
 /* =========================================================
-   START BRM FAN NETWORK
+   YOUTUBE PLAYER
    ========================================================= */
 
-async function startCelebrationNow() {
-  if (running) return;
-
-  running = true;
-
-  document.body.classList.add("celebrating");
-
-  if (startCelebration) {
-    startCelebration.textContent =
-      "BRM FAN NETWORK LIVE ✦";
-
-    startCelebration.disabled = true;
+function loadYouTubeAPI() {
+  if (
+    window.YT &&
+    window.YT.Player
+  ) {
+    createYouTubePlayer();
+    return;
   }
 
-  await startFanSession();
+  window.onYouTubeIframeAPIReady =
+    createYouTubePlayer;
 
-  await updateRealFanCount();
+  const existing =
+    document.querySelector(
+      'script[src="https://www.youtube.com/iframe_api"]'
+    );
 
-  heartbeatTimer = setInterval(
-    heartbeat,
-    15000
-  );
+  if (existing) return;
 
-  fanCountTimer = setInterval(
-    updateRealFanCount,
-    5000
-  );
+  const tag =
+    document.createElement("script");
 
-  setInterval(
-    animateFans,
-    2200
+  tag.src =
+    "https://www.youtube.com/iframe_api";
+
+  document.head.appendChild(tag);
+}
+
+function createYouTubePlayer() {
+  if (!playlistFrame) return;
+  if (youtubePlayer) return;
+
+  youtubePlayer =
+    new YT.Player(
+      "brmPlaylist",
+      {
+        events: {
+          onReady:
+            onYouTubeReady,
+
+          onStateChange:
+            onYouTubeStateChange,
+
+          onError:
+            onYouTubeError
+        }
+      }
+    );
+}
+
+/* =========================================================
+   YOUTUBE READY
+   ========================================================= */
+
+function onYouTubeReady() {
+  console.log(
+    "BRMMONEY YouTube player ready."
   );
 }
 
 /* =========================================================
-   CLEAN UP WHEN VISITOR LEAVES
+   YOUTUBE PLAYBACK STATE
+   ========================================================= */
+
+async function onYouTubeStateChange(event) {
+  if (!window.YT) return;
+
+  const PLAYING =
+    YT.PlayerState.PLAYING;
+
+  const PAUSED =
+    YT.PlayerState.PAUSED;
+
+  const ENDED =
+    YT.PlayerState.ENDED;
+
+  const BUFFERING =
+    YT.PlayerState.BUFFERING;
+
+  if (event.data === PLAYING) {
+    document.body.classList.add(
+      "celebrating"
+    );
+
+    if (!fanSessionId) {
+      await startFanSession();
+    } else {
+      fanIsListening = true;
+      await heartbeat();
+    }
+
+    if (!visualTimer) {
+      visualTimer =
+        setInterval(
+          animateFans,
+          2200
+        );
+    }
+
+    await updateRealFanCount();
+
+    return;
+  }
+
+  if (
+    event.data === PAUSED ||
+    event.data === ENDED
+  ) {
+    document.body.classList.remove(
+      "celebrating"
+    );
+
+    await pauseFanSession();
+
+    await updateRealFanCount();
+
+    return;
+  }
+
+  if (event.data === BUFFERING) {
+    /*
+      Keep the fan session alive during
+      short YouTube buffering events.
+    */
+
+    if (fanSessionId) {
+      fanIsListening = true;
+    }
+  }
+}
+
+/* =========================================================
+   YOUTUBE ERRORS
+   ========================================================= */
+
+function onYouTubeError(event) {
+  console.error(
+    "BRMMONEY YouTube player error:",
+    event.data
+  );
+
+  if (stateName) {
+    stateName.textContent =
+      "PLAYER ERROR";
+  }
+
+  if (stateMessage) {
+    stateMessage.textContent =
+      "The BRMMONEY player could not start this track.";
+  }
+}
+
+/* =========================================================
+   CLEANUP
    ========================================================= */
 
 async function endFanSession() {
-  if (!supabase || !fanSessionId) return;
+  if (!supabase) return;
+  if (!fanSessionId) return;
+
+  const sessionToDelete =
+    fanSessionId;
+
+  fanSessionId = null;
+  fanIsListening = false;
 
   await supabase
     .from("brm_fan_sessions")
     .delete()
-    .eq("session_id", fanSessionId);
+    .eq(
+      "session_id",
+      sessionToDelete
+    );
 }
 
-window.addEventListener(
-  "beforeunload",
-  () => {
-    if (supabase && fanSessionId) {
-      navigator.sendBeacon(
-        `${SUPABASE_URL}/rest/v1/brm_fan_sessions?session_id=eq.${encodeURIComponent(fanSessionId)}`,
-        ""
-      );
+/* =========================================================
+   PAGE VISIBILITY
+   ========================================================= */
+
+document.addEventListener(
+  "visibilitychange",
+  async () => {
+    if (
+      document.visibilityState ===
+      "hidden"
+    ) {
+      /*
+        We do not immediately delete the
+        session because the visitor may
+        briefly switch tabs while music
+        continues.
+      */
+
+      return;
+    }
+
+    if (
+      document.visibilityState ===
+      "visible"
+    ) {
+      if (
+        youtubePlayer &&
+        typeof youtubePlayer.getPlayerState ===
+          "function"
+      ) {
+        const playerState =
+          youtubePlayer.getPlayerState();
+
+        if (
+          playerState ===
+          YT.PlayerState.PLAYING
+        ) {
+          fanIsListening = true;
+          await heartbeat();
+          await updateRealFanCount();
+        }
+      }
     }
   }
 );
 
 /* =========================================================
-   INITIALIZE
+   BEFORE LEAVING
    ========================================================= */
 
-function initializeBRMNetwork() {
+window.addEventListener(
+  "beforeunload",
+  () => {
+    /*
+      The heartbeat timeout protects the
+      count if the browser closes before
+      a normal cleanup request completes.
+    */
+  }
+);
+
+/* =========================================================
+   SUPABASE INITIALIZATION
+   ========================================================= */
+
+function initializeSupabase() {
   if (!window.supabase) {
     setTimeout(
-      initializeBRMNetwork,
+      initializeSupabase,
       100
     );
+
     return;
   }
 
@@ -303,16 +504,59 @@ function initializeBRMNetwork() {
   console.log(
     "BRMMONEY FAN NETWORK connected."
   );
+
+  updateRealFanCount();
 }
+
+/* =========================================================
+   HEARTBEAT TIMER
+   ========================================================= */
+
+function startHeartbeatTimer() {
+  if (heartbeatTimer) return;
+
+  heartbeatTimer =
+    setInterval(
+      heartbeat,
+      15000
+    );
+}
+
+/* =========================================================
+   FAN COUNT TIMER
+   ========================================================= */
+
+function startFanCountTimer() {
+  if (fanCountTimer) return;
+
+  fanCountTimer =
+    setInterval(
+      updateRealFanCount,
+      5000
+    );
+}
+
+/* =========================================================
+   INITIALIZE
+   ========================================================= */
 
 createFans();
 
-if (startCelebration) {
-  startCelebration.addEventListener(
-    "click",
-    startCelebrationNow
-  );
-}
+startHeartbeatTimer();
+
+startFanCountTimer();
+
+loadYouTubeAPI();
+
+const supabaseScript =
+  document.createElement("script");
+
+supabaseScript.src =
+  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
 
 supabaseScript.onload =
-  initializeBRMNetwork;
+  initializeSupabase;
+
+document.head.appendChild(
+  supabaseScript
+);
